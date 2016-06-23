@@ -1,20 +1,33 @@
-FROM buildpack-deps:latest
-MAINTAINER Sam Doshi <sam@metal-fish.co.uk>
+FROM haskell:7.10.3
 
-ENV STACK_VERSION 1.1.2
+MAINTAINER Frédéric Menou <frederic.menou@gmail.com>
 
-ENV STACK_DOWNLOAD_URL https://github.com/commercialhaskell/stack/releases/download/v$STACK_VERSION/stack-$STACK_VERSION-linux-x86_64.tar.gz
-ENV DEBIAN_FRONTEND noninteractive
-ENV PATH $PATH:/root/.local/bin
-ENV LANG C.UTF-8
+# App user
+RUN useradd -m app
+RUN  chown -R app:app /home/app/
 
-RUN apt-get update -q && \
-    apt-get install -qy libgmp-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Application working directory
+USER app
+WORKDIR /home/app
 
-RUN mkdir -p /root/.local/bin && \
-    wget -q -O- $STACK_DOWNLOAD_URL | tar --strip=1 -xvz -C /root/.local/bin/ && \
-    chmod +x /root/.local/bin/stack
+# Dependencies
+COPY stack.yaml /home/app/stack.yaml
+COPY yummy.cabal /home/app/yummy.cabal
+USER root
+RUN  chown -R app:app /home/app/
+USER app
+RUN stack build --only-snapshot
 
-RUN stack exec yummy-exe
+ENV PATH /home/app/.local/bin:$PATH
+
+# Copy code
+COPY ./ /home/app/
+USER root
+RUN  chown -R app:app /home/app/
+USER app
+
+# Build
+RUN stack install
+
+EXPOSE 8080
+ENTRYPOINT yummy-exe
