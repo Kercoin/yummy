@@ -16,3 +16,5 @@ RUN apt-get update -q && \
 RUN mkdir -p /root/.local/bin && \
     wget -q -O- $STACK_DOWNLOAD_URL | tar --strip=1 -xvz -C /root/.local/bin/ && \
     chmod +x /root/.local/bin/stack
+
+RUN stack exec yummy-exe
