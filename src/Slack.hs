@@ -46,13 +46,14 @@ toParameter (a, b) = a ++ "=" ++ b
 type TeamId = String
 data Token = Unknown | Token String deriving (Show)
 
-data OAuthAccessResponse = OAuthAccessResponse Token TeamId URL deriving Show
+data OAuthAccessResponse = OAuthAccessResponse Token TeamId URL URL deriving Show
 
 instance FromJSON OAuthAccessResponse where
   parseJSON (Object o) = do
     incomingWebhook <- o .: "incoming_webhook"
     OAuthAccessResponse <$> parseJSON (Object o)
                         <*> o .: "team_id"
+                        <*> incomingWebhook .: "url"
                         <*> incomingWebhook .: "configuration_url"
   parseJSON invalid = typeMismatch "OAuthAccessResponse" invalid
 
