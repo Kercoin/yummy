@@ -22,7 +22,7 @@ routes = get "/oauth" handleOAuth
 
 handleOAuth :: ActionM ()
 handleOAuth = do
-  code <- param "code"
+  code        <- param "code"
   redirectUri <- liftIO $ baseURL "/oauth"
   OAuthAccessResponse token teamId configurationUrl <- liftIO $ issueSlackToken redirectUri code
   _ <- liftIO $ store teamId token

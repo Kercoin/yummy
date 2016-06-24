@@ -8,7 +8,7 @@ import Slack (TeamId, Token(..)) -- move datatypes to a Models module
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as C (pack, unpack)
 import Database.Redis
-import System.Environment (getEnv)
+import System.Environment (getEnv, lookupEnv)
 
 store :: TeamId -> Token -> IO (Either String ())
 store _       Unknown      = return $ fail "Nope"
@@ -32,10 +32,10 @@ statusResult Ok         = Right ()
 statusResult Pong       = Left "pong..."
 statusResult (Status s) = Left (C.unpack s)
 
-retrieve :: TeamId -> IO (Either String TeamId)
+retrieve :: TeamId -> IO (Either String Token)
 retrieve teamId = do
   conn <- connect =<< getConnectionSettings
-  fmap (either replyResult (returnResult C.unpack)) <$> runRedis conn $ get (key teamId)
+  fmap (either replyResult (returnResult (Token . C.unpack))) <$> runRedis conn $ get (key teamId)
 
 key :: TeamId -> ByteString
 key teamId = C.pack $ "access-token." ++ teamId
@@ -43,14 +43,19 @@ key teamId = C.pack $ "access-token." ++ teamId
 getConnectionSettings :: IO ConnectInfo
 getConnectionSettings = connectionSettings <$> getRedisHost
                                            <*> getRedisPort
+                                           <*> tryGetRedisPassword
 
-connectionSettings :: HostName -> PortID -> ConnectInfo
-connectionSettings host port = defaultConnectInfo { connectHost = host
-                                                  , connectPort = port
-                                                  }
+connectionSettings :: HostName -> PortID -> Maybe ByteString -> ConnectInfo
+connectionSettings host port pass = defaultConnectInfo { connectHost = host
+                                                       , connectPort = port
+                                                       , connectAuth = pass
+                                                       }
 
 getRedisHost :: IO HostName
 getRedisHost = getEnv "YUMMY_REDIS_HOST"
 
 getRedisPort :: IO PortID
 getRedisPort = PortNumber . fromInteger . read <$> getEnv "YUMMY_REDIS_PORT"
+
+tryGetRedisPassword :: IO (Maybe ByteString)
+tryGetRedisPassword = fmap C.pack <$> lookupEnv "YUMMY_REDIS_AUTH"
