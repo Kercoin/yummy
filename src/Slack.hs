@@ -3,6 +3,7 @@
 module Slack
     ( OAuthAccessResponse(..)
     , Token(..)
+    , TeamId
     , issueSlackToken
     ) where
 
@@ -42,14 +43,16 @@ toParameters = intercalate "&" . map toParameter
 toParameter :: Parameter -> String
 toParameter (a, b) = a ++ "=" ++ b
 
+type TeamId = String
 data Token = Unknown | Token String deriving (Show)
 
-data OAuthAccessResponse = OAuthAccessResponse Token URL deriving Show
+data OAuthAccessResponse = OAuthAccessResponse Token TeamId URL deriving Show
 
 instance FromJSON OAuthAccessResponse where
   parseJSON (Object o) = do
     incomingWebhook <- o .: "incoming_webhook"
     OAuthAccessResponse <$> parseJSON (Object o)
+                        <*> o .: "team_id"
                         <*> incomingWebhook .: "configuration_url"
   parseJSON invalid = typeMismatch "OAuthAccessResponse" invalid
 

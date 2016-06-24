@@ -5,6 +5,7 @@ module Lib
     ) where
 
 import Slack
+import Store
 
 import Control.Monad.IO.Class      (liftIO)
 import Data.Text.Lazy         as T (pack)
@@ -23,8 +24,8 @@ handleOAuth :: ActionM ()
 handleOAuth = do
   code <- param "code"
   redirectUri <- liftIO $ baseURL "/oauth"
-  OAuthAccessResponse _ configurationUrl <- liftIO $ issueSlackToken redirectUri code
-  -- TODO: save Token in Redis
+  OAuthAccessResponse token teamId configurationUrl <- liftIO $ issueSlackToken redirectUri code
+  _ <- liftIO $ store teamId token
   redirect $ T.pack configurationUrl
 
 baseURL :: String -> IO String
