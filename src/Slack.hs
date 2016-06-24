@@ -30,7 +30,7 @@ type Parameters = [Parameter]
 type Parameter = (String, String)
 
 mkURL :: String -> URL -> Parameters -> URL
-mkURL verb u ps = mkUrl (verb ++ " " ++ u) ps
+mkURL verb u = mkUrl (verb ++ " " ++ u)
 
 mkUrl :: URL -> Parameters -> URL
 mkUrl url []         = url
