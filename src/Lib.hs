@@ -7,10 +7,11 @@ module Lib
 import Slack
 import Store
 
-import Control.Monad.IO.Class      (liftIO)
-import Data.Text.Lazy         as T (pack)
-import System.Environment          (getEnv)
-import Web.Scotty
+import           Control.Monad.IO.Class      (liftIO)
+import qualified Data.ByteString.Char8  as C (pack)
+import           Data.Text.Lazy         as T (pack)
+import           System.Environment          (getEnv)
+import           Web.Scotty
 
 startApp :: IO ()
 startApp = do
@@ -24,8 +25,12 @@ handleOAuth :: ActionM ()
 handleOAuth = do
   code        <- param "code"
   redirectUri <- liftIO $ baseURL "/oauth"
-  OAuthAccessResponse token teamId configurationUrl <- liftIO $ issueSlackToken redirectUri code
-  _ <- liftIO $ store teamId token
+  OAuthAccessResponse token teamId webhookUrl configurationUrl <- liftIO $ issueSlackToken redirectUri code
+  _ <- case token of
+         Token t -> liftIO $
+              store (C.pack ("access-token." ++ teamId)) (C.pack t)
+           >> store (C.pack ("webhook-url."  ++ teamId)) (C.pack webhookUrl)
+         Unknown -> fail "No Token"
   redirect $ T.pack configurationUrl
 
 baseURL :: String -> IO String
