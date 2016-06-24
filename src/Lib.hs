@@ -1,39 +1,34 @@
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeOperators   #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Lib
     ( startApp
     ) where
 
-import Data.Aeson
-import Data.Aeson.TH
-import Network.Wai
-import Network.Wai.Handler.Warp
-import Servant
+import Slack
 
-data User = User
-  { userId        :: Int
-  , userFirstName :: String
-  , userLastName  :: String
-  } deriving (Eq, Show)
-
-$(deriveJSON defaultOptions ''User)
-
-type API = "users" :> Get '[JSON] [User]
+import Control.Monad.IO.Class      (liftIO)
+import Data.Text.Lazy         as T (pack)
+import System.Environment          (getEnv)
+import Web.Scotty
 
 startApp :: IO ()
-startApp = run 8080 app
+startApp = do
+  putStrLn "Starting Server..."
+  scotty 8080 routes
 
-app :: Application
-app = serve api server
+routes :: ScottyM ()
+routes = do
+  get "/oauth" handleOAuth
 
-api :: Proxy API
-api = Proxy
+handleOAuth :: ActionM ()
+handleOAuth = do
+  code <- param "code"
+  redirectUri <- liftIO $ baseURL "/oauth"
+  OAuthAccessResponse _ configurationUrl <- liftIO $ issueSlackToken redirectUri code
+  -- TODO: save Token in Redis
+  redirect $ T.pack configurationUrl
 
-server :: Server API
-server = return users
-
-users :: [User]
-users = [ User 1 "Isaac" "Newton"
-        , User 2 "Albert" "Einstein"
-        ]
+baseURL :: String -> IO String
+baseURL path = do
+  base <- getEnv "YUMMY_BASE_URL"
+  return $ base ++ path
