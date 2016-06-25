@@ -19,7 +19,9 @@ startApp = do
   scotty 8080 routes
 
 routes :: ScottyM ()
-routes = get "/oauth" handleOAuth
+routes = do
+  get "/" $ html "<body>hello</body>"
+  get "/oauth" handleOAuth
 
 handleOAuth :: ActionM ()
 handleOAuth = do
